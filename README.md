@@ -16,13 +16,18 @@ A standalone, single-pass, 3D-printed mechanical card shuffler capable of arrang
 | **Power** | USB-C PD trigger board (`15V 3A` / `45W+` brick or power bank) + dual isolated `5V 3A` buck converters (dedicated `5.1V` rail for Pi 4, separate `5V` rail for servo/sensors) |
 | **Budget & Fabrication** | Target `~$105–$128` (well under `$150` ceiling), OnShape CAD, `≥220×220 mm` 3D printer (PLA/PETG), M3 heat-set inserts |
 
+> **Live Status & Workflow:** Check [`PROJECT_STATE.md`](PROJECT_STATE.md) for current phase, Drive links, and `ready-now` tasks ([GitHub Issues `#2`–`#16`](https://github.com/AndrewCh3n/card_shuffler/issues)), and follow [`AGENTS.md`](AGENTS.md) for shared GitHub + Google Workspace ground rules.
+
 ## Repository Layout
 
 ```text
 card_shuffler/
+├── AGENTS.md                    # Shared GitHub + Google Workspace ground rules & chat workflow
+├── PROJECT_STATE.md             # 1-page live status dashboard, Drive links, BOM snapshot & ready-now issues
 ├── docs/
 │   ├── architecture.md          # System architecture, state machine, serial protocol & wiring pinout
-│   ├── bom.md                   # Itemized Bill of Materials, specs, sourcing notes & cost breakdown
+│   ├── bom.md                   # Engineering Bill of Materials spec & staged ordering rationale
+│   ├── build_log.md             # Append-only engineering build, print tolerance & bench-test log
 │   ├── cad_spec.md              # OnShape parametric variables, tolerances, module dimensions & bench-test plan
 │   └── vision_setup.md          # Step-by-step USB webcam / Pi Camera card-recognition setup guide
 ├── cad/                         # Exported OnShape STEP/STL files & revision logs
