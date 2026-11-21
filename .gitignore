@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Local runtime data & calibration captures
+software/data/stacks.json
+software/data/vision_config.json
+software/data/templates/
+software/data/calibration_captures/
+*.log
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Arduino build artifacts
+firmware/**/build/
+*.hex
+*.elf

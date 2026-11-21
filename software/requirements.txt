@@ -1,0 +1,10 @@
+# Core web server & API (required for both simulation and Raspberry Pi)
+fastapi>=0.110.0
+uvicorn>=0.29.0
+pydantic>=2.6.0
+
+# Hardware interfaces (install on Raspberry Pi 4B or PC when connecting real hardware)
+# pyserial>=3.5
+# opencv-python-headless>=4.9.0
+# numpy>=1.26.0
+# picamera2  # On Raspberry Pi OS, install via: sudo apt install python3-picamera2

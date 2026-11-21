@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Card Shuffler</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --card: #181c26;
+      --border: #2a3040;
+      --text: #eef1f7;
+      --muted: #8b95ab;
+      --accent: #4f8cff;
+      --green: #2ecc71;
+      --red: #ff5c6c;
+      --amber: #f5b041;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding-bottom: 40px;
+    }
+    header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #131720;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    header h1 { margin: 0; font-size: 1.05rem; letter-spacing: 0.3px; }
+    .badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #232a3a;
+      color: var(--muted);
+    }
+    .badge.ok { background: rgba(46, 204, 113, 0.16); color: var(--green); }
+    .badge.warn { background: rgba(245, 176, 65, 0.2); color: var(--amber); }
+    .badge.err { background: rgba(255, 92, 108, 0.2); color: var(--red); }
+    .badge.run { background: rgba(79, 140, 255, 0.2); color: var(--accent); }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: #131720;
+    }
+    .tab {
+      flex: 1;
+      padding: 12px 6px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.88rem;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+    .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+    main { max-width: 720px; margin: 0 auto; padding: 14px; }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .panel h2 { margin: 0 0 10px 0; font-size: 0.9rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
+
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    button.secondary { background: #262e40; color: var(--text); }
+    button.danger { background: var(--red); }
+    button.success { background: var(--green); color: #09130c; }
+    button.small { padding: 6px 10px; font-size: 0.8rem; }
+
+    input[type="text"], input[type="number"], select {
+      background: #10131c;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 11px;
+      font-size: 0.9rem;
+    }
+
+    .alert-box {
+      background: rgba(245, 176, 65, 0.12);
+      border: 1px solid var(--amber);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 14px;
+    }
+    .alert-box h3 { margin: 0 0 6px 0; color: var(--amber); font-size: 0.95rem; }
+    .alert-box p { margin: 0 0 10px 0; font-size: 0.88rem; line-height: 1.4; }
+
+    .progress-bar {
+      height: 10px;
+      background: #10131c;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.15s ease;
+    }
+
+    .slots-grid {
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      gap: 4px;
+      margin-top: 10px;
+    }
+    .slot-cell {
+      background: #111520;
+      border: 1px solid #242a3a;
+      border-radius: 5px;
+      padding: 4px 2px;
+      text-align: center;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+    .slot-cell.filled {
+      background: #1d2d4a;
+      border-color: var(--accent);
+      color: var(--text);
+      font-weight: 700;
+    }
+    .slot-cell.red { color: #ff8a96; }
+
+    .stack-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      background: #121620;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+    .stack-meta { font-size: 0.78rem; color: var(--muted); }
+
+    .picker-grid {
+      display: grid;
+      grid-template-columns: repeat(13, 1fr);
+      gap: 3px;
+      margin-bottom: 6px;
+    }
+    .card-btn {
+      padding: 6px 0;
+      font-size: 0.74rem;
+      background: #121620;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      text-align: center;
+      cursor: pointer;
+    }
+    .card-btn.red { color: #ff7e8b; }
+    .card-btn.used { opacity: 0.25; pointer-events: none; }
+    .card-btn.captured {
+      background: rgba(46, 204, 113, 0.2);
+      border-color: var(--green);
+      font-weight: 700;
+    }
+    .card-btn.selected {
+      outline: 2px solid var(--accent);
+    }
+
+    .order-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      max-height: 210px;
+      overflow-y: auto;
+      padding: 8px;
+      background: #10131c;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .chip {
+      background: #22293b;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 7px;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+    .chip.red { color: #ff8a96; }
+    .chip span { color: var(--muted); font-size: 0.68rem; margin-right: 4px; }
+
+    .log-box {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.74rem;
+      color: var(--muted);
+      background: #10131c;
+      border-radius: 8px;
+      padding: 8px;
+      max-height: 140px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    .cam-frame {
+      width: 100%;
+      background: #090b10;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      min-height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin: 10px 0;
+    }
+    .cam-frame img { width: 100%; display: block; }
+    .slider-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .slider-item label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+    .slider-item input[type="range"] { width: 100%; }
+
+    .result-banner {
+      padding: 14px;
+      border-radius: 10px;
+      background: #10131c;
+      border: 1px solid var(--border);
+      text-align: center;
+      margin-top: 10px;
+    }
+    .result-card { font-size: 2rem; font-weight: 800; letter-spacing: 1px; }
+    .result-card.red { color: #ff7e8b; }
+    .result-card.ok { color: var(--green); }
+    .result-card.warn { color: var(--amber); }
+
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Card Shuffler</h1>
+    <div class="row">
+      <span id="simBadge" class="badge hidden">SIM MODE</span>
+      <span id="stateBadge" class="badge">IDLE</span>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('sort')">Sort Deck</div>
+    <div class="tab" onclick="switchTab('builder')">Stack Builder</div>
+    <div class="tab" onclick="switchTab('vision')">Vision / Camera</div>
+  </div>
+
+  <main>
+    <!-- Alert Banner -->
+    <div id="alertBox" class="alert-box hidden">
+      <h3 id="alertTitle">Attention Needed</h3>
+      <p id="alertMsg"></p>
+      <div class="row">
+        <button class="success" onclick="resumeSort()">Fix &amp; Resume</button>
+        <button class="danger" onclick="abortSort()">Abort Sort</button>
+      </div>
+    </div>
+
+    <!-- TAB 1: SORT -->
+    <section id="tab-sort">
+      <div class="panel">
+        <h2>Quick Random Shuffle</h2>
+        <div class="row" style="justify-content: space-between;">
+          <label style="font-size: 0.88rem;">
+            <input type="checkbox" id="randomJokers" /> Include 2 Jokers (54 cards)
+          </label>
+          <button id="btnRandom" onclick="startRandom()">Shuffle Randomly</button>
+        </div>
+        <div id="simFaultRow" class="row hidden" style="margin-top: 10px;">
+          <label for="simFault" style="font-size: 0.8rem; color: var(--muted);">Sim fault test:</label>
+          <select id="simFault" style="font-size: 0.8rem; padding: 5px 8px;">
+            <option value="">None (clean run)</option>
+            <option value="face_up">Inject Face-Up Card</option>
+            <option value="duplicate">Inject Duplicate Card</option>
+            <option value="missing">Inject Missing Card</option>
+            <option value="jam">Inject Exit Jam</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Saved Stacks</h2>
+        <div id="stackList">Loading...</div>
+      </div>
+
+      <div class="panel">
+        <div class="row" style="justify-content: space-between;">
+          <h2 style="margin: 0;">Live Elevator (54 Slots)</h2>
+          <div class="row">
+            <button id="btnAbort" class="danger small hidden" onclick="abortSort()">Abort</button>
+            <button id="btnReset" class="secondary small hidden" onclick="resetSort()">Reset</button>
+          </div>
+        </div>
+        <div style="font-size: 0.85rem; margin-top: 8px;" id="progressText">Ready — drop a face-down Bicycle deck in the hopper.</div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="slots-grid" id="slotsGrid"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Activity Log</h2>
+        <div class="log-box" id="logBox">Waiting for sort...</div>
+      </div>
+    </section>
+
+    <!-- TAB 2: CUSTOM STACK BUILDER -->
+    <section id="tab-builder" class="hidden">
+      <div class="panel">
+        <h2>Build Custom Named Stack</h2>
+        <div class="row" style="margin-bottom: 10px;">
+          <input type="text" id="stackName" placeholder="Stack name (e.g. My Trick Setup)" style="flex: 1;" />
+          <label style="font-size: 0.85rem;">
+            <input type="checkbox" id="builderJokers" onchange="renderBuilder()" /> 54 cards
+          </label>
+        </div>
+        <div class="row" style="margin-bottom: 10px;">
+          <button class="secondary small" onclick="builderFillRandom()">Fill Remaining Randomly</button>
+          <button class="secondary small" onclick="builderLoadNDO()">Load New Deck Order</button>
+          <button class="secondary small" onclick="builderClear()">Clear</button>
+          <button class="success small" id="btnSaveStack" onclick="saveBuiltStack()">Save Stack</button>
+        </div>
+        <div style="font-size: 0.82rem; color: var(--muted); margin-bottom: 6px;" id="builderCount">
+          0 / 52 cards placed (tap cards below from Top #1 to Bottom #52)
+        </div>
+        <div id="cardPicker"></div>
+        <h2 style="margin-top: 12px;">Current Order (Top #1 → Bottom) — tap a card to remove</h2>
+        <div class="order-chips" id="builderOrder"></div>
+        <div id="builderFeedback" style="font-size: 0.82rem; margin-top: 8px;"></div>
+      </div>
+    </section>
+
+    <!-- TAB 3: LIVE VISION / WEBCAM CALIBRATION -->
+    <section id="tab-vision" class="hidden">
+      <div class="panel">
+        <div class="row" style="justify-content: space-between;">
+          <h2 style="margin: 0;">1. Live Camera &amp; Corner Box Alignment</h2>
+          <div class="row">
+            <button id="btnStartCam" class="small" onclick="toggleCameraPreview(true)">Start Camera</button>
+            <button id="btnStopCam" class="secondary small hidden" onclick="toggleCameraPreview(false)">Stop Camera</button>
+          </div>
+        </div>
+        <div id="visionNotice" class="stack-meta" style="margin-top: 8px;">
+          Plug in your USB webcam, tap <strong>Start Camera</strong>, and position the card's top-left rank &amp; suit inside the inner yellow box.
+        </div>
+
+        <div class="row" style="margin-top: 8px;">
+          <label class="stack-meta">Source:
+            <select id="camSource" onchange="pushVisionConfig()" style="padding: 5px 8px; font-size: 0.82rem;">
+              <option value="webcam">USB Webcam</option>
+              <option value="picamera2">Pi Camera (CSI)</option>
+            </select>
+          </label>
+          <label class="stack-meta">Webcam Index:
+            <input type="number" id="camIndex" value="0" min="0" max="5" onchange="pushVisionConfig()" style="width: 58px; padding: 5px 8px; font-size: 0.82rem;" />
+          </label>
+        </div>
+
+        <div class="cam-frame" id="camFrame">
+          <span class="stack-meta">Camera preview stopped — tap Start Camera above.</span>
+        </div>
+
+        <div class="slider-grid">
+          <div class="slider-item">
+            <label><span>Box X</span><span id="valRoiX">120</span></label>
+            <input type="range" id="roiX" min="0" max="560" value="120" oninput="onSliderInput()" onchange="pushVisionConfig()" />
+          </div>
+          <div class="slider-item">
+            <label><span>Box Y</span><span id="valRoiY">80</span></label>
+            <input type="range" id="roiY" min="0" max="420" value="80" oninput="onSliderInput()" onchange="pushVisionConfig()" />
+          </div>
+          <div class="slider-item">
+            <label><span>Box Width</span><span id="valRoiW">180</span></label>
+            <input type="range" id="roiW" min="40" max="360" value="180" oninput="onSliderInput()" onchange="pushVisionConfig()" />
+          </div>
+          <div class="slider-item">
+            <label><span>Box Height</span><span id="valRoiH">240</span></label>
+            <input type="range" id="roiH" min="40" max="380" value="240" oninput="onSliderInput()" onchange="pushVisionConfig()" />
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>2. Capture Reference Templates (Start with 4–5 cards to test!)</h2>
+        <div class="stack-meta" id="tmplProgress" style="margin-bottom: 8px;">0 / 52 cards calibrated • Back: not captured yet</div>
+        <div class="row" style="margin-bottom: 10px;">
+          <select id="captureCardSelect" style="flex: 1;"></select>
+          <button class="success" onclick="captureTemplate(false)">Capture</button>
+          <button onclick="captureTemplate(true)">Capture &amp; Next →</button>
+          <button class="danger small" onclick="deleteSelectedTemplate()">Del</button>
+        </div>
+        <div id="visionFeedback" class="stack-meta" style="margin-bottom: 8px;"></div>
+        <div id="templateGrid"></div>
+      </div>
+
+      <div class="panel">
+        <h2>3. Test Card Identification Live</h2>
+        <div class="row">
+          <button onclick="identifyOnce()">Identify Card Now</button>
+          <label style="font-size: 0.86rem;">
+            <input type="checkbox" id="autoIdentifyToggle" onchange="toggleAutoIdentify()" /> Auto-Identify Live (every 0.8s)
+          </label>
+        </div>
+        <div class="result-banner" id="identifyBanner">
+          <div class="result-card" id="idCardText">—</div>
+          <div class="stack-meta" id="idDetails">Hold any calibrated card under the webcam and tap Identify.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const SUITS = [
+      { code: "S", sym: "♠", red: false },
+      { code: "H", sym: "♥", red: true },
+      { code: "C", sym: "♣", red: false },
+      { code: "D", sym: "♦", red: true },
+    ];
+    const RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+    const CALIBRATION_ORDER = ["BACK"];
+    for (const r of RANKS) CALIBRATION_ORDER.push(r + "S");
+    for (const r of RANKS) CALIBRATION_ORDER.push(r + "D");
+    for (const r of [...RANKS].reverse()) CALIBRATION_ORDER.push(r + "C");
+    for (const r of [...RANKS].reverse()) CALIBRATION_ORDER.push(r + "H");
+    CALIBRATION_ORDER.push("JK1", "JK2");
+
+    let builderCards = [];
+    let editingStackId = null;
+    let cachedStacks = [];
+    let capturedTemplates = new Set();
+    let previewRunning = false;
+    let autoIdentifyTimer = null;
+
+    function fmtCard(code) {
+      if (code === "BACK") return "BACK (Face-Up)";
+      if (code === "JK1") return "JK1";
+      if (code === "JK2") return "JK2";
+      const s = code.slice(-1);
+      const r = code.slice(0, -1);
+      const map = { S: "♠", H: "♥", C: "♣", D: "♦" };
+      return r + (map[s] || s);
+    }
+    function isRed(code) { return code.endsWith("H") || code.endsWith("D"); }
+
+    function switchTab(tab) {
+      const names = ["sort", "builder", "vision"];
+      document.querySelectorAll(".tab").forEach((el, idx) => {
+        el.classList.toggle("active", names[idx] === tab);
+      });
+      names.forEach(n => {
+        document.getElementById("tab-" + n).classList.toggle("hidden", n !== tab);
+      });
+      if (tab === "builder") renderBuilder();
+      if (tab === "vision") loadVisionStatus();
+    }
+
+    async function api(path, opts = {}) {
+      const res = await fetch(path, {
+        headers: { "Content-Type": "application/json" },
+        ...opts,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Request failed");
+      return data;
+    }
+
+    // ---- Sort & Stacks Tab ----
+    async function loadStacks() {
+      const data = await api("/api/stacks");
+      cachedStacks = data.stacks;
+      const el = document.getElementById("stackList");
+      if (!cachedStacks.length) {
+        el.innerHTML = "<div class='stack-meta'>No stacks saved yet.</div>";
+        return;
+      }
+      el.innerHTML = cachedStacks.map(s => `
+        <div class="stack-item">
+          <div>
+            <strong>${escapeHtml(s.name)}</strong>
+            <div class="stack-meta">${s.cards.length} cards ${s.builtin ? "• built-in" : "• custom"}</div>
+          </div>
+          <div class="row">
+            <button class="small" onclick="startStack('${s.id}')">Sort</button>
+            ${s.builtin ? "" : `<button class="secondary small" onclick="editStack('${s.id}')">Edit</button>`}
+            ${s.builtin ? "" : `<button class="danger small" onclick="deleteStack('${s.id}')">Del</button>`}
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    function getSimFault() {
+      const val = document.getElementById("simFault").value;
+      return val || null;
+    }
+
+    async function startRandom() {
+      try {
+        await api("/api/sort/random", {
+          method: "POST",
+          body: JSON.stringify({
+            include_jokers: document.getElementById("randomJokers").checked,
+            sim_fault: getSimFault(),
+          }),
+        });
+        pollStatus();
+      } catch (e) { alert(e.message); }
+    }
+
+    async function startStack(id) {
+      try {
+        await api(`/api/sort/stack/${id}`, {
+          method: "POST",
+          body: JSON.stringify({ sim_fault: getSimFault() }),
+        });
+        pollStatus();
+      } catch (e) { alert(e.message); }
+    }
+
+    async function resumeSort() { try { await api("/api/sort/resume", { method: "POST" }); pollStatus(); } catch (e) { alert(e.message); } }
+    async function abortSort() { try { await api("/api/sort/abort", { method: "POST" }); pollStatus(); } catch (e) { alert(e.message); } }
+    async function resetSort() { try { await api("/api/sort/reset", { method: "POST" }); pollStatus(); } catch (e) { alert(e.message); } }
+
+    async function deleteStack(id) {
+      if (!confirm("Delete this custom stack?")) return;
+      try { await api(`/api/stacks/${id}`, { method: "DELETE" }); loadStacks(); } catch (e) { alert(e.message); }
+    }
+
+    function editStack(id) {
+      const stack = cachedStacks.find(s => s.id === id);
+      if (!stack) return;
+      editingStackId = stack.id;
+      document.getElementById("stackName").value = stack.name;
+      document.getElementById("builderJokers").checked = stack.include_jokers;
+      builderCards = [...stack.cards];
+      switchTab("builder");
+    }
+
+    // ---- Custom Stack Builder Tab ----
+    function allTargetCards(includeJokers) {
+      const list = [];
+      for (const s of SUITS) for (const r of RANKS) list.push(r + s.code);
+      if (includeJokers) list.push("JK1", "JK2");
+      return list;
+    }
+
+    function renderBuilder() {
+      const includeJokers = document.getElementById("builderJokers").checked;
+      if (!includeJokers) builderCards = builderCards.filter(c => c !== "JK1" && c !== "JK2");
+      const targetLen = includeJokers ? 54 : 52;
+      const used = new Set(builderCards);
+      document.getElementById("builderCount").textContent =
+        `${builderCards.length} / ${targetLen} cards placed (tap cards below from Top #1 to Bottom #${targetLen})`;
+
+      let html = "";
+      for (const s of SUITS) {
+        html += `<div class="picker-grid">`;
+        for (const r of RANKS) {
+          const code = r + s.code;
+          html += `<div class="card-btn ${s.red ? "red" : ""} ${used.has(code) ? "used" : ""}" onclick="builderAdd('${code}')">${r}${s.sym}</div>`;
+        }
+        html += `</div>`;
+      }
+      if (includeJokers) {
+        html += `<div class="row" style="margin-top:4px;">`;
+        for (const jk of ["JK1", "JK2"]) {
+          html += `<button class="secondary small ${used.has(jk) ? "used" : ""}" ${used.has(jk) ? "disabled" : ""} onclick="builderAdd('${jk}')">${jk}</button>`;
+        }
+        html += `</div>`;
+      }
+      document.getElementById("cardPicker").innerHTML = html;
+
+      document.getElementById("builderOrder").innerHTML = builderCards.length
+        ? builderCards.map((c, i) => `<div class="chip ${isRed(c) ? "red" : ""}" onclick="builderRemove(${i})"><span>#${i+1}</span>${fmtCard(c)}</div>`).join("")
+        : `<span class="stack-meta">No cards placed yet.</span>`;
+    }
+
+    function builderAdd(code) { if (!builderCards.includes(code)) { builderCards.push(code); renderBuilder(); } }
+    function builderRemove(idx) { builderCards.splice(idx, 1); renderBuilder(); }
+    function builderClear() { builderCards = []; editingStackId = null; renderBuilder(); }
+    function builderLoadNDO() {
+      const includeJokers = document.getElementById("builderJokers").checked;
+      const ndo = [];
+      for (const r of RANKS) ndo.push(r + "S");
+      for (const r of RANKS) ndo.push(r + "D");
+      for (const r of [...RANKS].reverse()) ndo.push(r + "C");
+      for (const r of [...RANKS].reverse()) ndo.push(r + "H");
+      if (includeJokers) ndo.push("JK1", "JK2");
+      builderCards = ndo;
+      renderBuilder();
+    }
+    function builderFillRandom() {
+      const includeJokers = document.getElementById("builderJokers").checked;
+      const used = new Set(builderCards);
+      const rem = allTargetCards(includeJokers).filter(c => !used.has(c));
+      for (let i = rem.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [rem[i], rem[j]] = [rem[j], rem[i]];
+      }
+      builderCards = builderCards.concat(rem);
+      renderBuilder();
+    }
+
+    async function saveBuiltStack() {
+      const name = document.getElementById("stackName").value.trim();
+      const fb = document.getElementById("builderFeedback");
+      try {
+        await api("/api/stacks", {
+          method: "POST",
+          body: JSON.stringify({ name, cards: builderCards, stack_id: editingStackId }),
+        });
+        fb.style.color = "var(--green)";
+        fb.textContent = `Saved stack "${name}"!`;
+        editingStackId = null;
+        await loadStacks();
+        setTimeout(() => switchTab("sort"), 500);
+      } catch (e) {
+        fb.style.color = "var(--red)";
+        fb.textContent = e.message;
+      }
+    }
+
+    // ---- Vision / Camera Tab ----
+    async function loadVisionStatus() {
+      try {
+        const st = await api("/api/vision/status");
+        capturedTemplates = new Set(st.templates || []);
+        const cfg = st.config || {};
+        document.getElementById("camSource").value = cfg.camera_source || "webcam";
+        document.getElementById("camIndex").value = cfg.camera_index ?? 0;
+        document.getElementById("roiX").value = cfg.roi_x ?? 120;
+        document.getElementById("roiY").value = cfg.roi_y ?? 80;
+        document.getElementById("roiW").value = cfg.roi_w ?? 180;
+        document.getElementById("roiH").value = cfg.roi_h ?? 240;
+        onSliderInput();
+
+        const notice = document.getElementById("visionNotice");
+        if (!st.opencv_available) {
+          notice.style.color = "var(--amber)";
+          notice.innerHTML = "OpenCV is not installed on this machine yet. On your Raspberry Pi 4B, run <code>bash software/scripts/setup_pi.sh</code> to enable the USB webcam!";
+        } else if (st.camera_error) {
+          notice.style.color = "var(--red)";
+          notice.textContent = st.camera_error;
+        } else {
+          notice.style.color = "var(--muted)";
+          notice.innerHTML = "Place the card's corner index inside the inner yellow box. Tip: calibrate <strong>BACK + 4 test cards</strong> first to see instant recognition!";
+        }
+
+        document.getElementById("tmplProgress").textContent =
+          `${st.templates_count} / 52+ cards calibrated  •  Card Back (face-up check): ${st.has_back_template ? "Captured ✔" : "Not yet"}`;
+
+        renderCaptureDropdown();
+        renderTemplateGrid();
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    function onSliderInput() {
+      document.getElementById("valRoiX").textContent = document.getElementById("roiX").value;
+      document.getElementById("valRoiY").textContent = document.getElementById("roiY").value;
+      document.getElementById("valRoiW").textContent = document.getElementById("roiW").value;
+      document.getElementById("valRoiH").textContent = document.getElementById("roiH").value;
+    }
+
+    async function pushVisionConfig() {
+      try {
+        await api("/api/vision/config", {
+          method: "POST",
+          body: JSON.stringify({
+            camera_source: document.getElementById("camSource").value,
+            camera_index: parseInt(document.getElementById("camIndex").value, 10) || 0,
+            roi_x: parseInt(document.getElementById("roiX").value, 10),
+            roi_y: parseInt(document.getElementById("roiY").value, 10),
+            roi_w: parseInt(document.getElementById("roiW").value, 10),
+            roi_h: parseInt(document.getElementById("roiH").value, 10),
+          }),
+        });
+      } catch (e) {
+        document.getElementById("visionFeedback").textContent = e.message;
+      }
+    }
+
+    async function toggleCameraPreview(start) {
+      const frame = document.getElementById("camFrame");
+      if (start) {
+        await pushVisionConfig();
+        previewRunning = true;
+        document.getElementById("btnStartCam").classList.add("hidden");
+        document.getElementById("btnStopCam").classList.remove("hidden");
+        frame.innerHTML = `<img id="camImg" src="/api/vision/stream?t=${Date.now()}" alt="Live camera preview" onerror="onCamStreamError()" />`;
+      } else {
+        previewRunning = false;
+        document.getElementById("btnStartCam").classList.remove("hidden");
+        document.getElementById("btnStopCam").classList.add("hidden");
+        frame.innerHTML = `<span class="stack-meta">Camera preview stopped — tap Start Camera above.</span>`;
+        try { await api("/api/vision/close", { method: "POST" }); } catch (e) {}
+      }
+    }
+
+    async function onCamStreamError() {
+      previewRunning = false;
+      document.getElementById("btnStartCam").classList.remove("hidden");
+      document.getElementById("btnStopCam").classList.add("hidden");
+      await loadVisionStatus();
+      document.getElementById("camFrame").innerHTML =
+        `<span style="color: var(--amber); padding: 14px; text-align: center; font-size: 0.85rem;">Camera could not open — check the notice above (USB webcam plugged in? OpenCV installed?).</span>`;
+    }
+
+    function renderCaptureDropdown() {
+      const sel = document.getElementById("captureCardSelect");
+      const current = sel.value || "BACK";
+      sel.innerHTML = CALIBRATION_ORDER.map(code => {
+        const mark = capturedTemplates.has(code) ? " ✔" : "";
+        return `<option value="${code}" ${code === current ? "selected" : ""}>${fmtCard(code)}${mark}</option>`;
+      }).join("");
+    }
+
+    function renderTemplateGrid() {
+      const current = document.getElementById("captureCardSelect").value;
+      let html = `<div class="row" style="margin-bottom: 6px;">`;
+      for (const extra of ["BACK", "JK1", "JK2"]) {
+        const cap = capturedTemplates.has(extra) ? "captured" : "";
+        const sel = current === extra ? "selected" : "";
+        html += `<button class="secondary small ${cap} ${sel}" style="${cap ? "border: 1px solid var(--green);" : ""}" onclick="selectTemplateCard('${extra}')">${fmtCard(extra)}${cap ? " ✔" : ""}</button>`;
+      }
+      html += `</div>`;
+      for (const s of SUITS) {
+        html += `<div class="picker-grid">`;
+        for (const r of RANKS) {
+          const code = r + s.code;
+          const cap = capturedTemplates.has(code) ? "captured" : "";
+          const sel = current === code ? "selected" : "";
+          html += `<div class="card-btn ${s.red ? "red" : ""} ${cap} ${sel}" onclick="selectTemplateCard('${code}')">${r}${s.sym}</div>`;
+        }
+        html += `</div>`;
+      }
+      document.getElementById("templateGrid").innerHTML = html;
+    }
+
+    function selectTemplateCard(code) {
+      document.getElementById("captureCardSelect").value = code;
+      renderTemplateGrid();
+    }
+
+    async function captureTemplate(advanceNext) {
+      const sel = document.getElementById("captureCardSelect");
+      const card = sel.value;
+      const fb = document.getElementById("visionFeedback");
+      try {
+        await api("/api/vision/capture", {
+          method: "POST",
+          body: JSON.stringify({ card }),
+        });
+        fb.style.color = "var(--green)";
+        fb.textContent = `Captured template for ${fmtCard(card)}!`;
+        await loadVisionStatus();
+        if (advanceNext) {
+          const idx = CALIBRATION_ORDER.indexOf(card);
+          if (idx >= 0 && idx + 1 < CALIBRATION_ORDER.length) {
+            sel.value = CALIBRATION_ORDER[idx + 1];
+            renderTemplateGrid();
+          }
+        }
+      } catch (e) {
+        fb.style.color = "var(--red)";
+        fb.textContent = e.message;
+      }
+    }
+
+    async function deleteSelectedTemplate() {
+      const card = document.getElementById("captureCardSelect").value;
+      const fb = document.getElementById("visionFeedback");
+      try {
+        await api(`/api/vision/templates/${card}`, { method: "DELETE" });
+        fb.style.color = "var(--muted)";
+        fb.textContent = `Deleted template for ${fmtCard(card)}.`;
+        await loadVisionStatus();
+      } catch (e) {
+        fb.style.color = "var(--red)";
+        fb.textContent = e.message;
+      }
+    }
+
+    async function identifyOnce() {
+      const cardEl = document.getElementById("idCardText");
+      const detEl = document.getElementById("idDetails");
+      try {
+        const res = await api("/api/vision/identify", { method: "POST" });
+        const topStr = (res.top_matches || [])
+          .map(m => `${fmtCard(m.card)} ${Math.round(m.score * 100)}%`)
+          .join("  •  ");
+        const inkStr = res.ink_color ? ` • ${res.ink_color} ink` : "";
+
+        if (res.status === "OK" && res.card) {
+          cardEl.textContent = fmtCard(res.card);
+          cardEl.className = "result-card " + (isRed(res.card) ? "red" : "ok");
+          detEl.textContent = `${Math.round(res.confidence * 100)}% confidence${inkStr}` + (topStr ? `  |  Top: ${topStr}` : "");
+        } else if (res.status === "FACE_UP") {
+          cardEl.textContent = "FACE-UP CARD";
+          cardEl.className = "result-card warn";
+          detEl.textContent = res.message;
+        } else {
+          cardEl.textContent = "No Match";
+          cardEl.className = "result-card";
+          detEl.textContent = res.message + (topStr ? `  |  Closest: ${topStr}` : "");
+        }
+      } catch (e) {
+        cardEl.textContent = "Camera Error";
+        cardEl.className = "result-card warn";
+        detEl.textContent = e.message;
+      }
+    }
+
+    function toggleAutoIdentify() {
+      const on = document.getElementById("autoIdentifyToggle").checked;
+      if (autoIdentifyTimer) {
+        clearInterval(autoIdentifyTimer);
+        autoIdentifyTimer = null;
+      }
+      if (on) {
+        identifyOnce();
+        autoIdentifyTimer = setInterval(identifyOnce, 800);
+      }
+    }
+
+    // ---- Live Sort Poller ----
+    function renderSlots(slotsMap) {
+      let html = "";
+      for (let s = 53; s >= 0; s--) {
+        const card = slotsMap[String(s)];
+        const cls = card ? `slot-cell filled ${isRed(card) ? "red" : ""}` : "slot-cell";
+        html += `<div class="${cls}" title="Slot ${s}">${card ? fmtCard(card) : s}</div>`;
+      }
+      document.getElementById("slotsGrid").innerHTML = html;
+    }
+
+    async function pollStatus() {
+      try {
+        const st = await api("/api/status");
+        const badge = document.getElementById("stateBadge");
+        badge.textContent = st.state;
+        badge.className = "badge " + (
+          st.state === "COMPLETE" ? "ok" :
+          st.state === "PAUSED_ALERT" ? "warn" :
+          st.state === "ERROR" ? "err" :
+          (st.state === "SORTING" || st.state === "HOMING" || st.state === "UNLOADING") ? "run" : ""
+        );
+
+        document.getElementById("simBadge").classList.toggle("hidden", !st.simulation);
+        document.getElementById("simFaultRow").classList.toggle("hidden", !st.simulation);
+
+        const active = ["HOMING", "SORTING", "PAUSED_ALERT", "UNLOADING"].includes(st.state);
+        document.getElementById("btnAbort").classList.toggle("hidden", !active);
+        document.getElementById("btnReset").classList.toggle("hidden", !["COMPLETE", "ERROR"].includes(st.state));
+        document.getElementById("btnRandom").disabled = active;
+
+        const pct = st.expected_count ? Math.round((st.placed_count / st.expected_count) * 100) : 0;
+        document.getElementById("progressFill").style.width = pct + "%";
+        document.getElementById("progressText").textContent = st.expected_count
+          ? `${st.mode_label}: ${st.placed_count} / ${st.expected_count} cards slotted (${pct}%)` + (st.last_card ? ` — Last: ${fmtCard(st.last_card)} -> Slot ${st.current_slot}` : "")
+          : "Ready — drop a face-down Bicycle deck in the hopper.";
+
+        const alertBox = document.getElementById("alertBox");
+        if (st.alert && st.state === "PAUSED_ALERT") {
+          alertBox.classList.remove("hidden");
+          document.getElementById("alertTitle").textContent = `Paused: ${st.alert.code}`;
+          document.getElementById("alertMsg").textContent = st.alert.message;
+        } else {
+          alertBox.classList.add("hidden");
+        }
+
+        renderSlots(st.slots || {});
+        if (st.events && st.events.length) {
+          document.getElementById("logBox").textContent = st.events.join("\n");
+        }
+      } catch (e) {}
+    }
+
+    renderSlots({});
+    loadStacks();
+    pollStatus();
+    setInterval(pollStatus, 450);
+  </script>
+</body>
+</html>
